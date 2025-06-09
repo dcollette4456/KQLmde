@@ -1,0 +1,20 @@
+
+// This query searches for network events related to the "irp.cdn-website.com" domain.
+// It's a good starting point for investigating potential connections to this CDN.
+DeviceNetworkEvents
+| where RemoteUrl contains "irp.cdn-website.com"
+
+// This query expands on the previous one by selecting specific fields for analysis.
+// It filters for network events where the RemoteUrl contains "irp.cdn-website.com"
+// and then projects (selects) only the following columns:
+//   - Timestamp:  The time the event occurred.
+//   - DeviceName: The name of the device where the event was observed.
+//   - InitiatingProcessAccountName: The account that initiated the network connection.
+//   - RemoteUrl: The URL that was accessed.
+//   - InitiatingProcessCommandLine: The command line used to start the process.  Useful for identifying the program making the connection.
+//   - AdditionalFields:  Any additional data associated with the event.  Can contain valuable context.
+DeviceNetworkEvents
+| where RemoteUrl contains "irp.cdn-website.com"
+| project Timestamp, DeviceName, InitiatingProcessAccountName, RemoteUrl, InitiatingProcessCommandLine, AdditionalFields
+
+// Written by SFC Collette, David david.p.collette2.mil@army.mil
