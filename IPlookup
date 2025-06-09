@@ -2,13 +2,15 @@
 // Easiest way i could figure to do this. Just search for what machine has this IP.
 
 // Today is 6/9/2025
-// This query investigates network events related to the IP address 147.242.1.152.
-// It focuses on identifying the devices communicating with this IP and the details of those connections.
+// This query retrieves network events related to the IP address 147.242.1.152 
+// within the last 90 days.
 
 // Written by SFC Collette, David david.p.collette2.mil@army.mil
 
+
 DeviceNetworkEvents
 | where RemoteIP == "147.242.1.152"
+| where TimeGenerated > ago(90d)
 | project Timestamp, DeviceName, RemoteIP, RemotePort, Protocol, InitiatingProcessAccountName
 | order by Timestamp desc // Order by time to see the most recent events first
 
