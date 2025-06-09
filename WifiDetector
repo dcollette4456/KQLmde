@@ -1,0 +1,27 @@
+// Tried to find a way to detect if users' wifi is enabled. This worked but won't show if it's currently on, just when it was enabled.
+// Written by SFC Collette, David david.p.collette2.mil@army.mil
+
+// Step 1: Filter the DeviceNetworkInfo table to find devices of interest
+DeviceNetworkInfo
+| where DeviceName startswith "hump" or DeviceName startswith "carr" or DeviceName startswith "boni" or DeviceName startswith "kore" or DeviceName startswith "hmup" or DeviceName startswith "redc" or DeviceName startswith "dolp" or DeviceName startswith "pusa" or DeviceName startswith "busa" or DeviceName startswith "kstn" or DeviceName startswith "hnry" or DeviceName startswith "sout" or DeviceName startswith "hial" or DeviceName startswith "rcck" or DeviceName startswith "kwri" or DeviceName startswith "hove" or DeviceName startswith "stal" or DeviceName startswith "k55a" or DeviceName startswith "yong" or DeviceName startswith "cars" or DeviceName startswith "madi" or DeviceName startswith "sung" or DeviceName startswith "k8ab" or DeviceName startswith "yump" or DeviceName startswith "case" or DeviceName startswith "mprc" or DeviceName startswith "ihtc" or DeviceName startswith "suwo" or DeviceName startswith "cast" or DeviceName startswith "netc" or DeviceName startswith "jmmt" or DeviceName startswith "tang" or DeviceName startswith "chin" or DeviceName startswith "netg" or DeviceName startswith "k13a" or DeviceName startswith "waba" or DeviceName startswith "cwal" or DeviceName startswith "osan" or DeviceName startswith "k2ab" or DeviceName startswith "yngn"
+// Filter for wireless network adapters
+| where NetworkAdapterType contains "ireless"
+// Ensure the adapter status is "up"
+| where NetworkAdapterStatus contains "up"
+// Further filter for device names containing "w05aaa"
+| where DeviceName contains "w05aaa"
+// Select distinct device names to avoid duplication
+| distinct DeviceName
+// Join the filtered devices with login events to get user and login time details
+| join kind=inner (
+// Fetch login events from DeviceLogonEvents table
+    DeviceLogonEvents
+    // Summarize to find the most recent login for each device
+    | summarize arg_max(Timestamp, AccountName) by DeviceName
+    // Rename columns for clarity
+    | project DeviceName, LastLogonUser = AccountName, LastLogonTime = Timestamp
+) on DeviceName // Join based on matching DeviceName
+// Select the required fields for output
+| project DeviceName, LastLogonUser, LastLogonTime
+// Sort the results by the last logon time in descending order
+| sort by LastLogonTime desc
