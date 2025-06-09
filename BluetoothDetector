@@ -1,0 +1,31 @@
+
+
+// Written by SFC Collette, David david.p.collette2.mil@army.mil
+
+// I was trying to get this to detect bluetooth connections. It didn't work very well.
+
+// This query retrieves network information for devices with specific network adapter types and device names.
+// It's likely used to identify and gather details about a particular set of machines within the environment.
+
+DeviceNetworkInfo
+| where NetworkAdapterType contains "53"
+    // Filters the results to include only devices where the NetworkAdapterType contains the string "53".
+    // This likely identifies a specific type of network interface (e.g., Ethernet).  The exact meaning of "53" would depend on the specific environment.
+
+| where DeviceName startswith "hump" or DeviceName startswith "carr" or DeviceName startswith "boni" or DeviceName startswith "kore" or DeviceName startswith "hmup" or DeviceName startswith "redc" or DeviceName startswith "dolp" or DeviceName startswith "pusa" or DeviceName startswith "busa" or DeviceName startswith "kstn" or DeviceName startswith "hnry" or DeviceName startswith "sout" or DeviceName startswith "hial" or DeviceName startswith "rcck" or DeviceName startswith "kwri" or DeviceName startswith "hove" or DeviceName startswith "stal" or DeviceName startswith "k55a" or DeviceName startswith "yong" or DeviceName startswith "cars" or DeviceName startswith "madi" or DeviceName startswith "sung" or DeviceName startswith "k8ab" or DeviceName startswith "yump" or DeviceName startswith "case" or DeviceName startswith "mprc" or DeviceName startswith "ihtc" or DeviceName startswith "suwo" or DeviceName startswith "cast" or DeviceName startswith "netc" or DeviceName startswith "jmmt" or DeviceName startswith "tang" or DeviceName startswith "chin" or DeviceName startswith "netg" or DeviceName startswith "k13a" or DeviceName startswith "waba" or DeviceName startswith "cwal" or DeviceName startswith "osan" or DeviceName startswith "k2ab" or DeviceName startswith "yngn"
+    // Filters the results further to include only devices where the DeviceName starts with one of the listed prefixes.
+    // This appears to be targeting a specific group of devices identified by these naming conventions.  It's important to understand what these prefixes represent within the environment.
+
+| project DeviceName, MacAddress, IPAddresses, NetworkAdapterType
+    // Selects only the following columns from the filtered results:
+    //   - DeviceName: The name of the device.
+    //   - MacAddress: The MAC address of the network adapter.  Useful for uniquely identifying the device on the network.
+    //   - IPAddresses: The IP addresses assigned to the network adapter.
+    //   - NetworkAdapterType: The type of network adapter.
+
+
+
+DeviceNetworkInfo
+| where NetworkAdapterType contains "53"
+| where DeviceName startswith "hump" or DeviceName startswith "carr" or DeviceName startswith "boni" or DeviceName startswith "kore" or DeviceName startswith "hmup" or DeviceName startswith "redc" or DeviceName startswith "dolp" or DeviceName startswith "pusa" or DeviceName startswith "busa" or DeviceName startswith "kstn" or DeviceName startswith "hnry" or DeviceName startswith "sout" or DeviceName startswith "hial" or DeviceName startswith "rcck" or DeviceName startswith "kwri" or DeviceName startswith "hove" or DeviceName startswith "stal" or DeviceName startswith "k55a" or DeviceName startswith "yong" or DeviceName startswith "cars" or DeviceName startswith "madi" or DeviceName startswith "sung" or DeviceName startswith "k8ab" or DeviceName startswith "yump" or DeviceName startswith "case" or DeviceName startswith "mprc" or DeviceName startswith "ihtc" or DeviceName startswith "suwo" or DeviceName startswith "cast" or DeviceName startswith "netc" or DeviceName startswith "jmmt" or DeviceName startswith "tang" or DeviceName startswith "chin" or DeviceName startswith "netg" or DeviceName startswith "k13a" or DeviceName startswith "waba" or DeviceName startswith "cwal" or DeviceName startswith "osan" or DeviceName startswith "k2ab" or DeviceName startswith "yngn"
+| project DeviceName, MacAddress, IPAddresses, NetworkAdapterType
