@@ -1,0 +1,33 @@
+
+
+// This query identifies USB, Bluetooth, and Network Tethering connections 
+// originating from devices tagged with "AESS-KOR".
+// Written by SFC Collette, David david.p.collette2.mil@army.mil
+
+let AESS_KOR_Devices = 
+    DeviceInfo
+    | where DeviceDynamicTags has "AESS-KOR"
+    | distinct DeviceName;
+// USB Connections
+let USBConnections = DeviceEvents
+    | where ActionType in ("UsbDriveMounted", "UsbDriveAdded", "UsbDriveConnected")
+    | where AdditionalFields contains "Mobile" or AdditionalFields contains "Android" or AdditionalFields contains "iPhone"
+    | where DeviceName in (AESS_KOR_Devices) // Use the AESS-KOR device list
+    | project Timestamp, DeviceName, ConnectionType = "USB", ActionType, InitiatingProcessAccountName, AdditionalFields;
+// Bluetooth Connections
+let BluetoothConnections = DeviceEvents
+    | where ActionType in ("BluetoothDeviceConnected", "BluetoothDevicePaired")
+    | where AdditionalFields contains "Phone" or AdditionalFields contains "Mobile"
+    | where DeviceName in (AESS_KOR_Devices) // Use the AESS-KOR device list
+    | project Timestamp, DeviceName, ConnectionType = "Bluetooth", ActionType, InitiatingProcessAccountName, AdditionalFields;
+// Network Tethering
+let NetworkTethering = DeviceNetworkEvents
+    | where RemoteIP != "" and (LocalIP startswith "192.168." or LocalIP startswith "172.16." or LocalIP startswith "10.")  // Common tethering IP ranges
+    | where InitiatingProcessFileName contains "MobileHotspot" or AdditionalFields contains "Tethering"
+    | where DeviceName in (AESS_KOR_Devices) // Use the AESS-KOR device list
+    | project Timestamp, DeviceName, ConnectionType = "Network Tethering", RemoteIP, LocalIP, Protocol, InitiatingProcessAccountName, AdditionalFields;
+// Combine Results
+USBConnections
+| union BluetoothConnections
+| union NetworkTethering
+| order by Timestamp desc
