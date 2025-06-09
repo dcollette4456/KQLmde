@@ -1,0 +1,26 @@
+
+// Easiest way i could figure to do this. Just search for what machine has this IP.
+
+// Today is 6/9/2025
+// This query investigates network events related to the IP address 147.242.1.152.
+// It focuses on identifying the devices communicating with this IP and the details of those connections.
+
+// Written by SFC Collette, David david.p.collette2.mil@army.mil
+
+DeviceNetworkEvents
+| where RemoteIP == "147.242.1.152"
+| project Timestamp, DeviceName, RemoteIP, RemotePort, Protocol, InitiatingProcessAccountName
+| order by Timestamp desc // Order by time to see the most recent events first
+
+
+
+
+// This query retrieves all IP addresses a system has used in the last 90 days.
+
+let SystemName = "YourSystemNameHere"; // Replace with the actual system name
+DeviceNetworkEvents
+| where DeviceName == SystemName
+| where TimeGenerated > ago(90d)
+| project TimeGenerated, RemoteIP
+| distinct RemoteIP
+| order by TimeGenerated asc // Order by time to see the IP address history
