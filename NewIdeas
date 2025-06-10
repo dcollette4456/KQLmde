@@ -1,0 +1,372 @@
+Hell yes—if you’re knee-deep in Microsoft Sentinel and want to squeeze every bit of threat detection juice out of KQL, here’s a sharp list of script ideas tailored for real-world cyber defense ops. These are geared for SOC analysts, threat hunters, and blue teamers who want precision over fluff.
+
+
+---
+
+🔥 HIGH-VALUE KQL SCRIPT IDEAS FOR MICROSOFT SENTINEL
+
+🛡️ 1. Suspicious Logon Patterns
+
+SigninLogs
+| where ResultType == "0"  // successful logon
+| summarize LogonCount = count(), Locations = make_set(Location, 5) by UserPrincipalName, bin(TimeGenerated, 1d)
+| where array_length(Locations) > 1
+
+> Detects: Impossible travel, geo-anomalies, potential credential theft.
+
+
+
+
+---
+
+🧨 2. PowerShell Abuse via Microsoft Defender Logs
+
+DeviceProcessEvents
+| where FileName == "powershell.exe"
+| where ProcessCommandLine has_any ("Invoke-Expression", "IEX", "DownloadString", "Base64")
+| project Timestamp, DeviceName, AccountName, ProcessCommandLine
+
+> Detects: Obfuscated PS abuse, LOLBins, early-stage recon.
+
+
+
+
+---
+
+📡 3. Beaconing Detection (Regular Interval External Traffic)
+
+CommonSecurityLog
+| where DestinationPort in (80, 443)
+| summarize BeaconInterval = avg(toint(SecondDiff(prev(TimeGenerated), TimeGenerated))) by SourceIP, DestinationIP
+| where BeaconInterval between (50 .. 70)
+
+> Detects: C2 beaconing, exfil attempts, bot activity.
+
+
+
+
+---
+
+🎭 4. Privilege Escalation via Group Membership Changes
+
+AuditLogs
+| where OperationName == "Add member to role"
+| project TimeGenerated, Identity, TargetResources, InitiatedBy
+
+> Detects: Rogue privilege grants, lateral movement prep.
+
+
+
+
+---
+
+🔍 5. Suspicious File Writes to System32 or Startup
+
+DeviceFileEvents
+| where FolderPath has_any ("\\System32\\", "Startup")
+| where FileName endswith ".exe" or FileName endswith ".ps1"
+| where InitiatingProcessFileName != "explorer.exe"
+
+> Detects: Persistence mechanisms and post-exploitation.
+
+
+
+
+---
+
+🧬 6. Azure Resource Abuse (Spinning VMs in Weird Regions)
+
+AzureActivity
+| where ResourceProvider == "Microsoft.Compute"
+| where OperationName == "Create Virtual Machine"
+| summarize count() by Caller, Location
+| where Location !in ("eastus", "westus", "centralus")  // Adjust for your org's footprint
+
+> Detects: Crypto mining abuse, rogue automation.
+
+
+
+
+---
+
+🏹 7. Failed MFA Attempts Spike
+
+SigninLogs
+| where Status has "MFA denied" or Status has "MFA failed"
+| summarize FailedMFACount = count() by UserPrincipalName, bin(TimeGenerated, 1h)
+| where FailedMFACount > 5
+
+> Detects: MFA brute force or token replay attacks.
+
+
+
+
+---
+
+🦠 8. Office 365 Mailbox Rule Tampering
+
+OfficeActivity
+| where Operation == "Set-Mailbox"
+| where Parameters has "InboxRules"
+
+> Detects: BEC (Business Email Compromise) post-access tampering.
+
+
+
+
+---
+
+📂 9. Large Downloads from Sensitive SharePoint Sites
+
+OfficeActivity
+| where Operation in ("FileDownloaded", "FileAccessed")
+| where SiteUrl has "sensitive"  // Customize this
+| summarize FileCount = count() by UserId, SiteUrl, bin(TimeGenerated, 1h)
+| where FileCount > 100
+
+> Detects: Internal data exfil, insider threats.
+
+
+
+
+---
+
+🧪 10. Custom Threat Intelligence Matching (IP/Domains/Hashes)
+
+let badIPs = externaldata(IPAddress:string)[@"https://<yourthreatfeed.com>/ipfeed.csv"];
+CommonSecurityLog
+| where DestinationIP in (badIPs)
+
+> Detects: IOCs from threat intel, operational feeds, or MISP/OTX.
+
+
+
+
+---
+
+⚙️ BONUS: Build Your Own Threat Heat Map
+
+Use summarize and render to visualize:
+
+SigninLogs
+| summarize count() by Location, bin(TimeGenerated, 1d)
+| render timechart
+
+> Great for exec dashboards or daily briefings.
+
+
+
+
+---
+
+🧠 Tips:
+
+Use make_set() and dcount() for anomaly scoring.
+
+Schedule with analytic rules and configure alerts.
+
+Pair with playbooks for automation (e.g., auto-isolation, ticket creation).
+
+
+
+---
+
+Q1: How would you chain these KQL scripts into an automated detection-to-response pipeline in Sentinel using Logic Apps?
+
+Q2: What techniques can you use to reduce false positives from scripts like beaconing or login anomalies?
+
+Q3: Want a walkthrough on how to create a Sentinel Hunting Workbook using these KQLs and visual elements like pie charts and maps?
+
+
+Oh hell yes—Sentinel can do renders, and not just weak pie charts either. Since it's built on Azure Monitor Logs, which uses KQL, you can tap into render to create visualizations like:
+
+timecharts
+
+barcharts
+
+piecharts
+
+tables
+
+heatmaps
+
+maps (yes, with actual geo-coordinates)
+
+
+For a connection heatmap, you're thinking of something like a geospatial map of source IPs or login locations? That’s totally doable—assuming you’ve got latitude/longitude or at least country/region info in your logs.
+
+
+---
+
+🔥 Example: Sign-in Location Heatmap (World Map)
+
+SigninLogs
+| where ResultType == 0
+| summarize EventCount = count() by Location, bin(TimeGenerated, 1d)
+| project Location, EventCount
+| render map
+
+But if you want actual lat/lon plotting, you need to break the Location field down—or enrich it with GeoIP if Sentinel didn’t give you that out of the box. Or use ip_to_geo() if your workspace supports it:
+
+
+---
+
+🌍 Sign-in Map by IP (Using ip_to_geo())
+
+SigninLogs
+| extend geoInfo = ip_to_geo(IPAddress)
+| where isnotempty(geoInfo)
+| summarize count() by geoInfo.Country, geoInfo.City, geoInfo.Latitude, geoInfo.Longitude
+| project City=geoInfo.City, Country=geoInfo.Country, Latitude=geoInfo.Latitude, Longitude=geoInfo.Longitude, Logins=count_
+| render map
+
+> 🧠 Pro tip: You can’t render map unless you’re in a Workbook or Logs blade that supports visual output. Pure alert rules won't show visuals, but hunting dashboards? Hell yes.
+
+
+
+
+---
+
+🧬 Want a heatmap of internal east-west traffic?
+
+You’ll need data like from NSG flow logs, Zscaler, or any 3rd-party firewall. Here’s an idea for volume between internal IPs:
+
+AzureNetworkAnalytics_CL
+| where FlowDirection_s == "Inbound"
+| summarize TotalBytes = sum(BytesTransferred_d) by SrcIP_s, DstIP_s
+| project SrcIP=SrcIP_s, DstIP=DstIP_s, TotalBytes
+| render heatmap
+
+> Replace field names with your actual schema—because Microsoft loves 20 naming conventions.
+
+
+
+
+---
+
+💡 Render Types Sentinel Supports in KQL
+
+Render Type	Description
+
+timechart	Time series line chart
+barchart	Standard bar chart
+columnchart	Vertical bars
+piechart	Pie slices
+table	Default grid output
+scatterchart	XY plots
+heatmap	Color-coded matrix
+map	World map with geo plotting
+
+
+
+---
+
+Q1: Want a full Workbook template with a heatmap, login trends, beaconing, and file access anomalies all visualized?
+
+Q2: Need help setting up ip_to_geo() in your Sentinel workspace or integrating with external GeoIP APIs?
+
+Q3: Curious how to automate heatmap generation for exec dashboards and deliver them via secure links or Teams?
+
+
+Boom—that’s exactly the kind of real-world nuance most folks miss. If you're DoD and your users are spread across bases, embassies, and dusty tents worldwide, a location-based heatmap gets noisy fast and “anomalous” starts looking like standard op tempo.
+
+So let’s drop the map fantasy and switch gears to something way more mission-relevant: connection heatmaps based on internal systems, accounts, or subnets.
+
+
+---
+
+🔥 DoD-Grade Connection Heatmap (No Geo Crap)
+
+This one's for visualizing east-west comms, lateral movement, or system-to-system chatter inside your enclaves. Think IP-to-IP, user-to-host, or port scan behavior.
+
+📊 Option 1: IP-to-IP Heatmap (From NSG, ZScaler, Sysmon 3 or Firewalls)
+
+CommonSecurityLog
+| where isnotempty(SourceIP) and isnotempty(DestinationIP)
+| summarize ConnectionCount = count() by SourceIP, DestinationIP
+| render heatmap
+
+> Use case: Spot heavily connected nodes (potential pivots, chokepoints, internal scans).
+
+
+
+
+---
+
+🧑‍💻 Option 2: User-to-Host Auth Heatmap (Lateral Movement Recon)
+
+SecurityEvent
+| where EventID in (4624)  // successful logon
+| summarize AuthCount = count() by Account, Computer
+| render heatmap
+
+> Use case: Identify abnormal user-to-system logon patterns. Useful when someone's making the rounds before elevating privileges.
+
+
+
+
+---
+
+🧬 Option 3: Service Port Scanning (Lateral Recon)
+
+DeviceNetworkEvents
+| where ActionType == "ConnectionInitiated"
+| summarize AttemptCount = count() by InitiatingProcessAccountName, RemotePort
+| render heatmap
+
+> Use case: Shows who’s knocking on what ports. Useful when someone’s hunting for SMB shares or RDP services internally.
+
+
+
+
+---
+
+🧠 Option 4: Domain-to-Device Auth Relationships (Compromise Blast Radius)
+
+DeviceLogonEvents
+| summarize LogonEvents = count() by AccountName, DeviceName
+| render heatmap
+
+> Use case: Lays out which domain accounts hit which endpoints. Great for post-compromise scoping.
+
+
+
+
+---
+
+🚫 No Lat/Long? No Problem.
+
+You don’t need maps to get heatmap value. The render heatmap in Sentinel is basically a 2D matrix visualizer—use it to display frequency, volume, or abnormal access relationships between two axes. That could be:
+
+Account ↔ Host
+
+IP ↔ IP
+
+Source Subnet ↔ Destination Subnet
+
+Process ↔ Target Resource
+
+User ↔ Protocol
+
+
+
+---
+
+Pro Tip 💡:
+
+Add anomaly scoring using join or dcount() and layer on alerts from analytic rules:
+
+SecurityEvent
+| where EventID == 4624
+| summarize dcount(Computer) by Account
+| where dcount_ > 20  // unusual fan-out
+
+
+---
+
+Q1: Want a pre-built workbook template that visualizes east-west lateral movement patterns without relying on geo-data?
+
+Q2: Should we build a threat hunt rule to highlight abnormal account-to-host relationships using dynamic thresholds?
+
+Q3: Want help integrating your Sysmon or firewall logs into this to expand visibility across enclaves?
+
